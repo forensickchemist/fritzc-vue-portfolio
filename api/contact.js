@@ -1,7 +1,5 @@
-const SITEVERIFY_URL =
-  'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-
-const EXPECTED_ACTION = 'contact';
+const FORMTORCH_ENDPOINT =
+  process.env.FORMTORCH_ENDPOINT;
 
 export default async function handler(req, res) {
   // ------------------------------------------------------------
@@ -13,6 +11,25 @@ export default async function handler(req, res) {
       message: 'Method not allowed.',
     });
   }
+
+  // ------------------------------------------------------------
+  // Formtorch configuration
+  // ------------------------------------------------------------
+
+  if (!FORMTORCH_ENDPOINT) {
+    console.error(
+      'FORMTORCH_ENDPOINT is not configured.'
+    );
+
+    return res.status(500).json({
+      message:
+        'Contact form is temporarily unavailable.',
+    });
+  }
+
+  // ------------------------------------------------------------
+  // Request body
+  // ------------------------------------------------------------
 
   const {
     fullName,
@@ -33,171 +50,31 @@ export default async function handler(req, res) {
     typeof message !== 'string'
   ) {
     return res.status(400).json({
-      message: 'Please complete all required fields.',
+      message:
+        'Please complete all required fields.',
     });
   }
 
   // ------------------------------------------------------------
-  // Validate Turnstile token
+  // Validate Turnstile token exists
+  //
+  // We DO NOT call Cloudflare Siteverify here.
+  //
+  // Formtorch is responsible for validating the token.
   // ------------------------------------------------------------
 
   if (
     typeof turnstileToken !== 'string' ||
-    turnstileToken.length === 0 ||
-    turnstileToken.length > 2048
+    turnstileToken.length === 0
   ) {
-    return res.status(403).json({
-      message: 'Captcha verification is required.',
-    });
-  }
-
-  // ------------------------------------------------------------
-  // Server configuration
-  // ------------------------------------------------------------
-
-  const secret = process.env.TURNSTILE_SECRET;
-
-  const expectedHostnames = new Set(
-    (process.env.TURNSTILE_HOSTNAMES ?? '')
-      .split(',')
-      .map((hostname) => hostname.trim())
-      .filter(Boolean)
-  );
-
-  const formtorchEndpoint =
-    process.env.FORMTORCH_ENDPOINT;
-
-  if (!secret || expectedHostnames.size === 0) {
-    console.error(
-      'Turnstile server configuration is incomplete.'
-    );
-
-    return res.status(500).json({
-      message: 'Contact form is temporarily unavailable.',
-    });
-  }
-
-  if (!formtorchEndpoint) {
-    console.error(
-      'FORMTORCH_ENDPOINT is not configured.'
-    );
-
-    return res.status(500).json({
-      message: 'Contact form is temporarily unavailable.',
-    });
-  }
-
-  // ------------------------------------------------------------
-  // Get visitor IP
-  // ------------------------------------------------------------
-
-  const forwardedFor =
-    req.headers['x-forwarded-for'];
-
-  const remoteIp =
-    typeof forwardedFor === 'string'
-      ? forwardedFor.split(',')[0].trim()
-      : req.socket?.remoteAddress ?? '';
-
-  // ------------------------------------------------------------
-  // Cloudflare Turnstile Siteverify
-  // ------------------------------------------------------------
-
-  let verification;
-
-  try {
-    const siteverifyData = new URLSearchParams();
-
-    siteverifyData.append('secret', secret);
-    siteverifyData.append(
-      'response',
-      turnstileToken
-    );
-
-    if (remoteIp) {
-      siteverifyData.append(
-        'remoteip',
-        remoteIp
-      );
-    }
-
-    const response = await fetch(
-      SITEVERIFY_URL,
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/x-www-form-urlencoded',
-        },
-
-        body: siteverifyData,
-      }
-    );
-
-    const responseText =
-      await response.text();
-
-    console.log(
-      'Turnstile Siteverify status:',
-      response.status
-    );
-
-    console.log(
-      'Turnstile Siteverify response:',
-      responseText
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Siteverify returned HTTP ${response.status}: ${responseText}`
-      );
-    }
-
-    verification =
-      JSON.parse(responseText);
-  } catch (error) {
-    console.error(
-      'Turnstile Siteverify request failed:',
-      error
-    );
-
-    return res.status(502).json({
+    return res.status(400).json({
       message:
-        'Captcha verification could not be completed. Please try again.',
+        'Captcha verification is required.',
     });
   }
 
   // ------------------------------------------------------------
-  // Validate Siteverify response
-  // ------------------------------------------------------------
-
-  if (
-    !verification.success ||
-    verification.action !== EXPECTED_ACTION ||
-    !expectedHostnames.has(
-      verification.hostname
-    )
-  ) {
-    console.error(
-      'Turnstile verification rejected:',
-      {
-        success: verification.success,
-        action: verification.action,
-        hostname: verification.hostname,
-        errors:
-          verification['error-codes'],
-      }
-    );
-
-    return res.status(403).json({
-      message:
-        'Captcha verification failed. Please try again.',
-    });
-  }
-
-  // ------------------------------------------------------------
-  // Forward verified form to Formtorch
+  // Forward submission to Formtorch
   // ------------------------------------------------------------
 
   try {
@@ -206,12 +83,12 @@ export default async function handler(req, res) {
 
     formData.append(
       'fullName',
-      fullName
+      fullName.trim()
     );
 
     formData.append(
       'email',
-      email
+      email.trim()
     );
 
     formData.append(
@@ -221,14 +98,20 @@ export default async function handler(req, res) {
 
     formData.append(
       'message',
-      message
+      message.trim()
     );
 
     /*
-     * Formtorch requires the Turnstile token.
+     * IMPORTANT:
      *
-     * The token has already been verified server-side
-     * by Cloudflare above.
+     * Formtorch expects the Cloudflare Turnstile
+     * token under this field name.
+     *
+     * We forward the token exactly as generated
+     * by Turnstile.
+     *
+     * We do NOT call Siteverify ourselves because
+     * Formtorch performs that verification.
      */
     formData.append(
       'cf-turnstile-response',
@@ -237,7 +120,7 @@ export default async function handler(req, res) {
 
     const formtorchResponse =
       await fetch(
-        formtorchEndpoint,
+        FORMTORCH_ENDPOINT,
         {
           method: 'POST',
 
@@ -265,12 +148,21 @@ export default async function handler(req, res) {
       result = null;
     }
 
-    if (!formtorchResponse.ok) {
-      console.error(
-        'Formtorch submission failed:',
-        result || responseText
-      );
+    console.log(
+      'Formtorch status:',
+      formtorchResponse.status
+    );
 
+    console.log(
+      'Formtorch response:',
+      result || responseText
+    );
+
+    // ----------------------------------------------------------
+    // HTTP error
+    // ----------------------------------------------------------
+
+    if (!formtorchResponse.ok) {
       return res.status(
         formtorchResponse.status
       ).json({
@@ -280,25 +172,24 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * Formtorch may return HTTP 200 while still
-     * indicating an application-level failure.
-     */
+    // ----------------------------------------------------------
+    // Formtorch application-level error
+    // ----------------------------------------------------------
+
     if (
       result &&
       result.success === false
     ) {
-      console.error(
-        'Formtorch rejected submission:',
-        result
-      );
-
       return res.status(400).json({
         message:
           result.message ||
           'Failed to send message.',
       });
     }
+
+    // ----------------------------------------------------------
+    // Success
+    // ----------------------------------------------------------
 
     return res.status(200).json({
       message:

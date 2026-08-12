@@ -27,21 +27,17 @@ const turnstileToken = ref('');
 const turnstileWidgetId = ref(null);
 const turnstileContainer = ref(null);
 
-let turnstileScript = null;
-
 // ============================================================
-// LOAD TURNSTILE
+// LOAD TURNSTILE SCRIPT
 // ============================================================
 
 const loadTurnstileScript = () => {
   return new Promise((resolve, reject) => {
-    // Turnstile already loaded
     if (window.turnstile) {
       resolve();
       return;
     }
 
-    // Script is already being loaded
     const existingScript =
       document.querySelector(
         'script[src*="challenges.cloudflare.com/turnstile"]'
@@ -63,22 +59,19 @@ const loadTurnstileScript = () => {
       return;
     }
 
-    // Create Turnstile script
-    turnstileScript =
+    const script =
       document.createElement('script');
 
-    turnstileScript.src =
+    script.src =
       'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
-    turnstileScript.async = true;
-    turnstileScript.defer = true;
+    script.async = true;
+    script.defer = true;
 
-    turnstileScript.onload = resolve;
-    turnstileScript.onerror = reject;
+    script.onload = resolve;
+    script.onerror = reject;
 
-    document.head.appendChild(
-      turnstileScript
-    );
+    document.head.appendChild(script);
   });
 };
 
@@ -108,19 +101,35 @@ const renderTurnstile = async () => {
         action: 'contact',
 
         callback: (token) => {
+          console.log(
+            'Turnstile token received.'
+          );
+
           turnstileToken.value =
             token;
         },
 
         'expired-callback': () => {
+          console.warn(
+            'Turnstile token expired.'
+          );
+
           turnstileToken.value = '';
         },
 
         'timeout-callback': () => {
+          console.warn(
+            'Turnstile timed out.'
+          );
+
           turnstileToken.value = '';
         },
 
         'error-callback': () => {
+          console.error(
+            'Turnstile encountered an error.'
+          );
+
           turnstileToken.value = '';
 
           notyf.error(
@@ -157,7 +166,6 @@ const submitForm = async () => {
     return;
   }
 
-  // Make sure Turnstile has been completed
   if (!turnstileToken.value) {
     notyf.error(
       'Please complete the captcha verification.'
@@ -214,15 +222,24 @@ const submitForm = async () => {
       );
     }
 
+    // ----------------------------------------------------------
+    // SUCCESS
+    // ----------------------------------------------------------
+
     notyf.success(
       'Message Sent!'
     );
 
-    // Clear form
     fullName.value = '';
     email.value = '';
     inquiryType.value = '';
     message.value = '';
+
+    /*
+     * The token has now been consumed by Formtorch.
+     * Get a fresh Turnstile token for the next submission.
+     */
+    resetTurnstile();
 
   } catch (error) {
     console.error(
@@ -234,13 +251,16 @@ const submitForm = async () => {
       error.message ||
         'Failed to send message.'
     );
-  } finally {
+
     /*
-     * Turnstile tokens are single-use.
-     * Always reset the widget after submission.
+     * The token may have been consumed even if
+     * Formtorch rejected the submission.
+     *
+     * Reset so the user gets a fresh token.
      */
     resetTurnstile();
 
+  } finally {
     isLoading.value = false;
   }
 };
@@ -280,12 +300,6 @@ onBeforeUnmount(() => {
 
   turnstileWidgetId.value = null;
   turnstileToken.value = '';
-
-  /*
-   * Don't remove the global Turnstile script here.
-   *
-   * Other components/pages may still use it.
-   */
 });
 </script>
 
@@ -295,10 +309,6 @@ onBeforeUnmount(() => {
     class="section contact-section"
   >
     <div class="container">
-
-      <!-- ==================================================
-           HEADER
-           ================================================== -->
 
       <header class="contact-header">
         <h2>
@@ -318,15 +328,7 @@ onBeforeUnmount(() => {
         </p>
       </header>
 
-      <!-- ==================================================
-           CONTACT GRID
-           ================================================== -->
-
       <div class="contact-grid">
-
-        <!-- ==================================================
-             MAP
-             ================================================== -->
 
         <div class="map-card">
           <iframe
@@ -338,26 +340,17 @@ onBeforeUnmount(() => {
           ></iframe>
         </div>
 
-        <!-- ==================================================
-             FORM
-             ================================================== -->
-
         <div class="form-card">
           <form
             class="contact-form"
             @submit.prevent="submitForm"
           >
-
             <h3>
               Send a Message
             </h3>
 
-            <!-- Full Name -->
-
             <div class="field">
-              <label
-                for="full-name"
-              >
+              <label for="full-name">
                 Full Name
               </label>
 
@@ -372,12 +365,8 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <!-- Email -->
-
             <div class="field">
-              <label
-                for="email"
-              >
+              <label for="email">
                 Email Address
               </label>
 
@@ -392,12 +381,8 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <!-- Inquiry Type -->
-
             <div class="field">
-              <label
-                for="inquiry-type"
-              >
+              <label for="inquiry-type">
                 Inquiry Type
               </label>
 
@@ -414,44 +399,30 @@ onBeforeUnmount(() => {
                   Select an option
                 </option>
 
-                <option
-                  value="Web Development"
-                >
+                <option value="Web Development">
                   Web Development
                 </option>
 
-                <option
-                  value="Data Analytics"
-                >
+                <option value="Data Analytics">
                   Data Analytics
                 </option>
 
-                <option
-                  value="UI/UX Design"
-                >
+                <option value="UI/UX Design">
                   UI/UX Design
                 </option>
 
-                <option
-                  value="Collaboration"
-                >
+                <option value="Collaboration">
                   Collaboration
                 </option>
 
-                <option
-                  value="Other"
-                >
+                <option value="Other">
                   Other
                 </option>
               </select>
             </div>
 
-            <!-- Message -->
-
             <div class="field">
-              <label
-                for="message"
-              >
+              <label for="message">
                 Message
               </label>
 
@@ -478,8 +449,6 @@ onBeforeUnmount(() => {
               ></div>
             </div>
 
-            <!-- Submit -->
-
             <button
               type="submit"
               class="submit-button"
@@ -491,17 +460,11 @@ onBeforeUnmount(() => {
                   : 'Send Message'
               }}
             </button>
-
           </form>
         </div>
       </div>
 
-      <!-- ==================================================
-           SOCIAL LINKS
-           ================================================== -->
-
       <div class="social-row">
-
         <h3>
           Connect With Me
         </h3>
@@ -523,7 +486,6 @@ onBeforeUnmount(() => {
             />
           </a>
         </div>
-
       </div>
 
     </div>
@@ -531,10 +493,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* ============================================================
-   CONTACT SECTION
-   ============================================================ */
-
 .contact-section {
   padding-block: clamp(4rem, 8vw, 5rem);
   background: var(--color-bg);
@@ -561,20 +519,12 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-/* ============================================================
-   CONTACT GRID
-   ============================================================ */
-
 .contact-grid {
   display: grid;
   grid-template-columns:
     repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
 }
-
-/* ============================================================
-   CARDS
-   ============================================================ */
 
 .map-card,
 .form-card {
@@ -596,10 +546,6 @@ onBeforeUnmount(() => {
   display: block;
 }
 
-/* ============================================================
-   CONTACT FORM
-   ============================================================ */
-
 .contact-form {
   height: 100%;
   padding: 1.5rem;
@@ -613,10 +559,6 @@ onBeforeUnmount(() => {
   letter-spacing: -0.01em;
   color: var(--color-text-h);
 }
-
-/* ============================================================
-   FORM FIELDS
-   ============================================================ */
 
 .field {
   margin-bottom: 1rem;
@@ -673,20 +615,12 @@ onBeforeUnmount(() => {
   min-height: 130px;
 }
 
-/* ============================================================
-   FORM FOCUS
-   ============================================================ */
-
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
   outline: 2px solid var(--color-teal);
   outline-offset: 1px;
 }
-
-/* ============================================================
-   TURNSTILE
-   ============================================================ */
 
 .turnstile-wrapper {
   display: flex;
@@ -698,10 +632,6 @@ onBeforeUnmount(() => {
 .cf-turnstile {
   min-height: 65px;
 }
-
-/* ============================================================
-   SUBMIT BUTTON
-   ============================================================ */
 
 .submit-button {
   padding: 0.7rem 1.25rem;
@@ -734,10 +664,6 @@ onBeforeUnmount(() => {
   opacity: 0.65;
   cursor: not-allowed;
 }
-
-/* ============================================================
-   SOCIAL
-   ============================================================ */
 
 .social-row {
   margin-top: 2.5rem;
@@ -783,10 +709,6 @@ onBeforeUnmount(() => {
   transform: scale(1.2);
 }
 
-/* ============================================================
-   TABLET
-   ============================================================ */
-
 @media (max-width: 991.98px) {
   .contact-grid {
     grid-template-columns: 1fr;
@@ -798,10 +720,6 @@ onBeforeUnmount(() => {
     min-height: 420px;
   }
 }
-
-/* ============================================================
-   MOBILE
-   ============================================================ */
 
 @media (max-width: 575.98px) {
   .contact-form {

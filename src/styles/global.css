@@ -1,0 +1,288 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+/* ============================================================
+   Global reset + design tokens
+   Based on the While Bored Typography System v2.
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 76px;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  color: var(--color-text-body);
+  background: var(--color-bg);
+  line-height: 1.7;
+  text-rendering: optimizeLegibility;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+img {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ----------------------------------------------------------
+     Typography
+     ---------------------------------------------------------- */
+
+  --font-logo: 'IBM Plex Mono', monospace;
+  --font-heading: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-label: 'IBM Plex Mono', monospace;
+  --font-code: 'IBM Plex Mono', monospace;
+
+  /* ----------------------------------------------------------
+     Type scale
+     ---------------------------------------------------------- */
+
+  --text-display-xl: clamp(32px, 6vw, 64px);
+  --text-display-lg: clamp(26px, 5vw, 48px);
+
+  --text-heading-xl: clamp(22px, 3.5vw, 36px);
+  --text-heading-lg: clamp(18px, 2.8vw, 28px);
+  --text-heading-md: clamp(16px, 2vw, 22px);
+  --text-heading-sm: clamp(15px, 1.6vw, 18px);
+
+  --text-body-lg: clamp(16px, 1.5vw, 18px);
+  --text-body-md: 15px;
+  --text-body-sm: 13px;
+  --text-body-xs: 12px;
+
+  --text-ui-md: 14px;
+  --text-ui-sm: 12px;
+
+  --text-label-lg: 16px;
+  --text-label-md: 14px;
+
+  --text-code-md: 13px;
+
+  /* ----------------------------------------------------------
+     Brand colors
+     ---------------------------------------------------------- */
+
+  --color-teal: #0FA3B1;
+  --color-deep-teal: #0B6E79;
+  --color-soft-teal: #D9F3F6;
+
+  --color-gold: #B8860B;
+  --color-gold-bg: #F5E6A3;
+
+  /* ----------------------------------------------------------
+     Semantic text colors
+     ---------------------------------------------------------- */
+
+  --color-text-h: #0F172A;
+  --color-text-body: #1E293B;
+  --color-text-muted: #64748B;
+  --color-text-label: #0B6E79;
+  --color-text-feat: #B8860B;
+  --color-text-link: #0FA3B1;
+
+  /* ----------------------------------------------------------
+     Surfaces
+     ---------------------------------------------------------- */
+
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+
+  /* Form controls */
+  --color-input-bg: #D9F3F6;
+
+  /* ----------------------------------------------------------
+     Navigation / accents
+     ---------------------------------------------------------- */
+
+  --color-navbar: #0B6E79;
+  --color-highlight: #0B6E79;
+
+  /* ----------------------------------------------------------
+     Borders / miscellaneous
+     ---------------------------------------------------------- */
+
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-icon-bg: none;
+
+  /* ----------------------------------------------------------
+     Supporting semantic surfaces
+     ---------------------------------------------------------- */
+
+  --color-social-bg: #D9F3F6;
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* ----------------------------------------------------------
+     Brand colors
+     ---------------------------------------------------------- */
+
+  --color-teal: #22B8C7;
+  --color-deep-teal: #15909D;
+  --color-soft-teal: #16363A;
+
+  --color-gold: #D4AF37;
+  --color-gold-bg: rgba(212, 175, 55, 0.15);
+
+  /* ----------------------------------------------------------
+     Semantic text colors
+     ---------------------------------------------------------- */
+
+  --color-text-h: #E5E7EB;
+  --color-text-body: #CBD5E1;
+  --color-text-muted: #94A3B8;
+  --color-text-label: #0FA3B1;
+  --color-text-feat: #D4AF37;
+  --color-text-link: #0FA3B1;
+
+  /* ----------------------------------------------------------
+     Surfaces
+     ---------------------------------------------------------- */
+
+  --color-bg: #0B1220;
+  --color-surface: #111827;
+
+  /* Form controls */
+  --color-input-bg: #172F33;
+
+  /* ----------------------------------------------------------
+     Navigation / accents
+     ---------------------------------------------------------- */
+
+  --color-navbar: #0B1220;
+  --color-highlight: #F5E6A3;
+
+  /* ----------------------------------------------------------
+     Borders / miscellaneous
+     ---------------------------------------------------------- */
+
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-icon-bg: #D9F3F6;
+
+  /* ----------------------------------------------------------
+     Supporting semantic surfaces
+
+     Keep this surface light so logos/icons with dark artwork
+     remain visible in dark mode.
+     ---------------------------------------------------------- */
+
+  --color-social-bg: #E8F7F9;
+}
+
+/* ============================================================
+   GLOBAL COMPONENT STYLES
+   ============================================================ */
+
+.highlight-word {
+  color: var(--color-gold);
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(184, 134, 11, 0.4);
+}
+
+.section {
+  width: 100%;
+}
+
+.container {
+  width: min(100% - 2rem, 1140px);
+  margin-inline: auto;
+}
+
+/* ============================================================
+   RESPONSIVE CONTAINER
+   ============================================================ */
+
+@media (min-width: 768px) {
+  .container {
+    width: min(100% - 3rem, 1140px);
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    width: min(100% - 4rem, 1140px);
+  }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ============================================================
+   SECTION HEADERS
+   ============================================================ */
+
+.section-header {
+    margin-bottom: clamp(2rem, 5vw, 3rem);
+}
+
+.section-header h2 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-heading-xl);
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    color: var(--color-text-h);
+}
+
+.section-label {
+    margin: 0 0 0.4rem;
+    font-family: var(--font-label);
+    font-size: var(--text-label-lg);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-label);
+}
+
+.section-description {
+    margin: 0.4rem 0 0;
+    font-family: var(--font-body);
+    font-size: var(--text-body-md);
+    color: var(--color-text-muted);
+}

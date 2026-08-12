@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta
+      name="description"
+      content="Fritz C. — Full Stack Web Developer and Data-Driven Problem Solver"
+    />
+
+    <link rel="icon" type="image/png" href="/images/brand/lowerwhite.png">
+
+    <title>FritzC Dev | Portfolio</title>
+
+    <script>
+      (() => {
+        const storageKey = 'fritzc-theme'
+        const storedTheme = localStorage.getItem(storageKey)
+
+        const systemTheme = window.matchMedia(
+          '(prefers-color-scheme: dark)'
+        ).matches
+          ? 'dark'
+          : 'light'
+
+        const theme =
+          storedTheme === 'light' || storedTheme === 'dark'
+            ? storedTheme
+            : systemTheme
+
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

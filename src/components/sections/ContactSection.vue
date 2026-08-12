@@ -108,9 +108,16 @@ const submitForm = async () => {
       inquiryType.value = '';
       message.value = '';
     } else {
+      console.error('Web3Forms response:', result);
+
       notyf.error(
         result.message || 'Failed to send message.'
       );
+
+
+      // notyf.error(
+      //   result.message || 'Failed to send message.'
+      // );
     }
   } catch (error) {
     console.error(error);

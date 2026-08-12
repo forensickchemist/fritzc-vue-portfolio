@@ -13,12 +13,22 @@
       content="Fritz C. — Full Stack Web Developer and Data-Driven Problem Solver"
     />
 
-    <link rel="icon" type="image/png" href="/images/brand/lowerwhite.png">
-
-    <script src="https://www.google.com/recaptcha/api.js?render=explicit"></script>
+    <link
+      rel="icon"
+      type="image/png"
+      href="/images/brand/lowerwhite.png"
+    />
 
     <title>FritzC Dev | Portfolio</title>
 
+    <!-- reCAPTCHA -->
+    <script
+      src="https://www.google.com/recaptcha/api.js?render=explicit"
+      async
+      defer
+    ></script>
+
+    <!-- Prevent theme flash on page load -->
     <script>
       (() => {
         const storageKey = 'fritzc-theme'
@@ -38,15 +48,14 @@
         document.documentElement.dataset.theme = theme
       })()
     </script>
-
-    <!-- recaptcha api -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   </head>
 
   <body>
     <div id="app"></div>
 
-    <script type="module" src="/src/main.js"></script>
-
+    <script
+      type="module"
+      src="/src/main.js"
+    ></script>
   </body>
 </html>

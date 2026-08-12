@@ -1,77 +1,157 @@
 <script setup>
+import {
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue';
+
 import { socialLinks } from '../../data/portfolio';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
 
 const notyf = new Notyf();
 
-const WEB3FORMS_ACCESS_KEY =
-  import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
-
-const SITE_KEY =
-  import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-
-const subject = 'New message from Portfolio Contact Form';
+const TURNSTILE_SITE_KEY =
+  import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 const fullName = ref('');
 const email = ref('');
 const inquiryType = ref('');
 const message = ref('');
+
 const isLoading = ref(false);
 
-const recaptchaContainer = ref(null);
-const recaptchaWidgetId = ref(null);
-const recaptchaToken = ref('');
+const turnstileToken = ref('');
+const turnstileWidgetId = ref(null);
+const turnstileContainer = ref(null);
 
-let recaptchaInterval = null;
+let turnstileScript = null;
 
-/* ============================================================
-   RECAPTCHA
-   ============================================================ */
+// ------------------------------------------------------------
+// Load Turnstile script
+// ------------------------------------------------------------
 
-const onRecaptchaSuccess = (token) => {
-  recaptchaToken.value = token;
+const loadTurnstileScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.turnstile) {
+      resolve();
+      return;
+    }
+
+    const existingScript = document.querySelector(
+      'script[src*="challenges.cloudflare.com/turnstile"]'
+    );
+
+    if (existingScript) {
+      existingScript.addEventListener(
+        'load',
+        resolve,
+        { once: true }
+      );
+
+      existingScript.addEventListener(
+        'error',
+        reject,
+        { once: true }
+      );
+
+      return;
+    }
+
+    turnstileScript =
+      document.createElement('script');
+
+    turnstileScript.src =
+      'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+
+    turnstileScript.async = true;
+    turnstileScript.defer = true;
+
+    turnstileScript.onload = resolve;
+    turnstileScript.onerror = reject;
+
+    document.head.appendChild(turnstileScript);
+  });
 };
 
-const onRecaptchaExpired = () => {
-  recaptchaToken.value = '';
-};
+// ------------------------------------------------------------
+// Render Turnstile explicitly
+// ------------------------------------------------------------
 
-const renderRecaptcha = () => {
-  if (!window.grecaptcha || !recaptchaContainer.value) {
-    console.error('reCAPTCHA not loaded.');
+const renderTurnstile = async () => {
+  await loadTurnstileScript();
+  await nextTick();
+
+  if (
+    !window.turnstile ||
+    !turnstileContainer.value ||
+    turnstileWidgetId.value !== null
+  ) {
     return;
   }
 
-  recaptchaWidgetId.value = window.grecaptcha.render(
-    recaptchaContainer.value,
-    {
-      sitekey: SITE_KEY,
-      size: 'normal',
-      callback: onRecaptchaSuccess,
-      'expired-callback': onRecaptchaExpired,
-    }
-  );
+  turnstileWidgetId.value =
+    window.turnstile.render(
+      turnstileContainer.value,
+      {
+        sitekey: TURNSTILE_SITE_KEY,
+        action: 'contact',
+
+        callback: (token) => {
+          turnstileToken.value = token;
+        },
+
+        'expired-callback': () => {
+          turnstileToken.value = '';
+        },
+
+        'timeout-callback': () => {
+          turnstileToken.value = '';
+        },
+
+        'error-callback': () => {
+          turnstileToken.value = '';
+
+          notyf.error(
+            'Captcha could not be loaded. Please refresh the page and try again.'
+          );
+        },
+      }
+    );
 };
 
-const resetRecaptcha = () => {
+// ------------------------------------------------------------
+// Reset the specific Turnstile widget
+// ------------------------------------------------------------
+
+const resetTurnstile = () => {
+  turnstileToken.value = '';
+
   if (
-    recaptchaWidgetId.value !== null &&
-    window.grecaptcha
+    window.turnstile &&
+    turnstileWidgetId.value !== null
   ) {
-    window.grecaptcha.reset(recaptchaWidgetId.value);
-    recaptchaToken.value = '';
+    window.turnstile.reset(
+      turnstileWidgetId.value
+    );
   }
 };
 
-/* ============================================================
-   FORM SUBMISSION
-   ============================================================ */
+// ------------------------------------------------------------
+// Submit contact form
+// ------------------------------------------------------------
 
 const submitForm = async () => {
-  if (!recaptchaToken.value) {
-    notyf.error('Please verify that you are not a robot.');
+  if (isLoading.value) {
+    return;
+  }
+
+  if (!turnstileToken.value) {
+    notyf.error(
+      'Please complete the captcha verification.'
+    );
+
     return;
   }
 
@@ -79,104 +159,124 @@ const submitForm = async () => {
 
   try {
     const response = await fetch(
-      'https://api.web3forms.com/submit',
+      '/api/contact',
       {
         method: 'POST',
+
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json',
         },
+
         body: JSON.stringify({
-          access_key: WEB3FORMS_ACCESS_KEY,
-          subject,
-          fullName: fullName.value,
-          email: email.value,
+          fullName: fullName.value.trim(),
+          email: email.value.trim(),
           inquiryType: inquiryType.value,
-          message: message.value,
-          'g-recaptcha-response': recaptchaToken.value,
+          message: message.value.trim(),
+          turnstileToken:
+            turnstileToken.value,
         }),
       }
     );
 
-    const result = await response.json();
+    let result = null;
 
-    if (result.success) {
-      notyf.success('Message Sent!');
-
-      fullName.value = '';
-      email.value = '';
-      inquiryType.value = '';
-      message.value = '';
-    } else {
-      console.error('Web3Forms response:', result);
-
-      notyf.error(
-        result.message || 'Failed to send message.'
-      );
-
-
-      // notyf.error(
-      //   result.message || 'Failed to send message.'
-      // );
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
     }
+
+    if (!response.ok) {
+      throw new Error(
+        result?.message ||
+          'Failed to send message.'
+      );
+    }
+
+    notyf.success('Message Sent!');
+
+    fullName.value = '';
+    email.value = '';
+    inquiryType.value = '';
+    message.value = '';
+
   } catch (error) {
-    console.error(error);
-    notyf.error('Failed to send message.');
+    console.error(
+      'Contact form submission error:',
+      error
+    );
+
+    notyf.error(
+      error.message ||
+        'Failed to send message.'
+    );
   } finally {
+    // Turnstile tokens are single-use.
+    // Reset the widget after every attempt so
+    // the next attempt receives a fresh token.
+    resetTurnstile();
+
     isLoading.value = false;
-    resetRecaptcha();
   }
 };
 
-/* ============================================================
-   LIFECYCLE
-   ============================================================ */
+// ------------------------------------------------------------
+// Lifecycle
+// ------------------------------------------------------------
 
 onMounted(() => {
-  recaptchaInterval = setInterval(() => {
-    if (
-      window.grecaptcha &&
-      window.grecaptcha.render &&
-      recaptchaContainer.value
-    ) {
-      renderRecaptcha();
+  renderTurnstile().catch((error) => {
+    console.error(
+      'Failed to initialize Turnstile:',
+      error
+    );
 
-      clearInterval(recaptchaInterval);
-      recaptchaInterval = null;
-    }
-  }, 100);
+    notyf.error(
+      'Captcha could not be loaded. Please refresh the page and try again.'
+    );
+  });
 });
 
 onBeforeUnmount(() => {
-  if (recaptchaInterval) {
-    clearInterval(recaptchaInterval);
-    recaptchaInterval = null;
+  if (
+    window.turnstile &&
+    turnstileWidgetId.value !== null
+  ) {
+    window.turnstile.remove(
+      turnstileWidgetId.value
+    );
   }
+
+  turnstileWidgetId.value = null;
+  turnstileToken.value = '';
 });
 </script>
 
 <template>
-  <section id="contact" class="section contact-section">
+  <section
+    id="contact"
+    class="section contact-section"
+  >
     <div class="container">
-
-      <!-- Contact Header -->
       <header class="contact-header">
         <h2>
           LET'S
-          <span class="highlight-word">BUILD</span>
+          <span class="highlight-word">
+            BUILD
+          </span>
           SOMETHING
-          <span class="highlight-word">GREAT</span>
+          <span class="highlight-word">
+            GREAT
+          </span>
         </h2>
 
         <p>
-          Have a project in mind? Send a message and let's connect.
+          Have a project in mind?
+          Send a message and let's connect.
         </p>
       </header>
 
-      <!-- Contact Grid -->
       <div class="contact-grid">
-
-        <!-- Map -->
         <div class="map-card">
           <iframe
             src="https://maps.google.com/maps?q=Quezon%20City&t=&z=13&ie=UTF8&iwloc=&output=embed"
@@ -187,7 +287,6 @@ onBeforeUnmount(() => {
           ></iframe>
         </div>
 
-        <!-- Contact Form -->
         <div class="form-card">
           <form
             class="contact-form"
@@ -195,7 +294,6 @@ onBeforeUnmount(() => {
           >
             <h3>Send a Message</h3>
 
-            <!-- Full Name -->
             <div class="field">
               <label for="full-name">
                 Full Name
@@ -212,7 +310,6 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <!-- Email -->
             <div class="field">
               <label for="email">
                 Email Address
@@ -229,7 +326,6 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <!-- Inquiry Type -->
             <div class="field">
               <label for="inquiry-type">
                 Inquiry Type
@@ -270,7 +366,6 @@ onBeforeUnmount(() => {
               </select>
             </div>
 
-            <!-- Message -->
             <div class="field">
               <label for="message">
                 Message
@@ -286,25 +381,29 @@ onBeforeUnmount(() => {
               ></textarea>
             </div>
 
-            <!-- reCAPTCHA -->
-            <div
-              ref="recaptchaContainer"
-              class="recaptcha-container"
-            ></div>
+            <!-- Cloudflare Turnstile -->
+            <div class="turnstile-wrapper">
+              <div
+                ref="turnstileContainer"
+                class="cf-turnstile"
+              ></div>
+            </div>
 
-            <!-- Submit -->
             <button
               type="submit"
               class="submit-button"
               :disabled="isLoading"
             >
-              {{ isLoading ? 'Sending...' : 'Send Message' }}
+              {{
+                isLoading
+                  ? 'Sending...'
+                  : 'Send Message'
+              }}
             </button>
           </form>
         </div>
       </div>
 
-      <!-- Social Links -->
       <div class="social-row">
         <h3>Connect With Me</h3>
 
@@ -326,13 +425,11 @@ onBeforeUnmount(() => {
           </a>
         </div>
       </div>
-
     </div>
   </section>
 </template>
 
 <style scoped>
-
 /* ============================================================
    CONTACT SECTION
    ============================================================ */
@@ -369,7 +466,10 @@ onBeforeUnmount(() => {
 
 .contact-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    2,
+    minmax(0, 1fr)
+  );
   gap: 1.5rem;
 }
 
@@ -384,7 +484,9 @@ onBeforeUnmount(() => {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0.125rem 0.5rem
+    rgba(0, 0, 0, 0.08);
 }
 
 .map-frame {
@@ -450,10 +552,6 @@ onBeforeUnmount(() => {
   color: var(--color-text-muted);
 }
 
-/* ============================================================
-   SELECT OPTIONS
-   ============================================================ */
-
 .field select option {
   background: var(--color-surface);
   color: var(--color-text-body);
@@ -470,10 +568,6 @@ onBeforeUnmount(() => {
 .field select:valid {
   color: var(--color-text-body);
 }
-
-/* ============================================================
-   TEXTAREA
-   ============================================================ */
 
 .field textarea {
   resize: vertical;
@@ -492,12 +586,18 @@ onBeforeUnmount(() => {
 }
 
 /* ============================================================
-   RECAPTCHA
+   TURNSTILE
    ============================================================ */
 
-.recaptcha-container {
-  margin-bottom: 1rem;
-  min-height: 78px;
+.turnstile-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0.25rem 0 1rem;
+  min-height: 65px;
+}
+
+.cf-turnstile {
+  min-height: 65px;
 }
 
 /* ============================================================
@@ -517,7 +617,8 @@ onBeforeUnmount(() => {
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .submit-button:hover:not(:disabled) {
@@ -607,7 +708,7 @@ onBeforeUnmount(() => {
     padding: 1.25rem;
   }
 
-  .recaptcha-container {
+  .turnstile-wrapper {
     overflow-x: auto;
   }
 
@@ -620,5 +721,4 @@ onBeforeUnmount(() => {
     height: 44px;
   }
 }
-
 </style>

@@ -49,7 +49,15 @@ src/
 └── main.js          # Application entry point
 ```
 
-## Understanding Page Content
+## Pages/Content
+```
+├── Hero
+├── Projects
+├── Tools & Technologies
+├── About
+├── Resume
+└── Contact
+```
 
 ### Hero
 
@@ -77,6 +85,8 @@ These include technologies across areas such as:
 - API development and testing
 - Productivity and collaboration
 
+The technologies presented in this section describe my broader technical experience and are not necessarily technologies used to build this portfolio itself.
+
 ### About
 
 Provides additional professional and personal context, helping prospective employers understand my background, interests, and approach to technology.
@@ -89,3 +99,20 @@ The current resume is available at:
 
 ```text
 public/documents/CV.pdf
+```
+
+### Contact
+
+The portfolio includes a functional contact form that allows visitors and prospective employers to send inquiries directly through the website.
+
+Form submissions are handled through Web3Forms, while Notyf provides visual feedback for successful and unsuccessful submissions.
+
+The form currently supports:
+
+- Full name
+- Email address
+- Inquiry type dropdown
+- Message
+
+The form does not require a custom application backend. This keeps the current portfolio lightweight while providing a practical way for visitors to make contact.
+

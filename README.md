@@ -1,118 +1,163 @@
-# FritzC Dev — Developer Portfolio
+# FritzC Dev Portfolio
 
-A personal portfolio website built with Vue 3 and Vite to present my technical skills, professional background, tools, and selected work to prospective employers.
+A personal developer portfolio built with Vue 3 and Vite to showcase my background, technical experience, selected projects, and professional profile.
 
-The portfolio is designed as both a professional introduction and an evolving showcase of my development, analytics, and digital skills. The current version focuses on establishing the site's visual identity, responsive structure, technical capabilities, and professional information, while leaving room for future projects and functionality.
+The project is both a personal portfolio and a practical demonstration of how I approach frontend development, component organization, responsive UI, third-party service integration, and deployment.
 
-## Tech Stack
+## Overview
 
-- Vue 3
-- Vite
-- JavaScript
-- HTML5
-- CSS3
-- Bootstrap Icons
-- Google Fonts
+The portfolio provides visitors with a concise view of my professional background and technical capabilities through several dedicated sections:
 
-## Features
-
-- Responsive portfolio layout
-- Light and dark theme support
-- Reusable Vue components
-- Data-driven project and portfolio content
-- Responsive navigation
-- Project showcase
-- Technical tools and technologies section
+- Introduction and personal profile
 - About section
-- Contact section
-- Downloadable CV
-- Responsive footer and navigation
-- Accessibility-conscious interactive elements
-- Reduced-motion support
+- Projects section
+- Tools and technologies
+- Resume
+- Contact form
+- Social links
+
+The Projects section currently contains placeholders for future projects. The structure is intentionally prepared so completed projects and case studies can be added as they become available.
+
+## Purpose
+This project is more than a static portfolio. It is an ongoing demonstration of my ability to design, structure, develop, and maintain a modern web application while keeping the implementation practical and maintainable.
+
+## Key Features
+
+### Responsive Interface
+The portfolio is designed to provide a consistent experience across desktop, tablet, and mobile devices.
+
+### Light and Dark Themes
+Users can switch between light and dark themes through the site's theme toggle.
+
+### Resume Access
+Visitors can view my resume directly in the browser or download a copy for later reference.
+
+### Contact Form
+The contact section provides a form for prospective employers, collaborators, and other visitors to send inquiries.
+
+The form uses Cloudflare Turnstile for bot protection and Formtorch for form processing and email delivery.
+
+The submission flow is:
+
+```
+Contact Form
+     ↓
+Cloudflare Turnstile
+     ↓
+Vercel Serverless API
+     ↓
+Formtorch
+     ↓
+Email
+```
+
+The contact form does not currently use a custom database. A database-backed contact system may be considered as a future improvement.
+
+## Component-Based Architecture
+The application is organized into reusable Vue components and composables rather than keeping the entire portfolio in a single component.
+
+The Contact section, for example, is divided into separate components for the form, map, and social links, while Turnstile functionality is handled through a dedicated composable.
+
+More information about the project's structure is available in ARCHITECTURE.md
+
+## Technology Stack
+- Core
+    - Vue 3
+    - Vite
+    - JavaScript
+    - HTML5
+    - CSS3
+
+- UI
+    - Bootstrap 5
+    - Bootstrap Icons
+    - Notyf
+
+- Services
+    - Cloudflare Turnstile
+    - Formtorch
+    - Vercel
+
 
 ## Project Structure
-
+The project follows a component-based Vue structure:
 ```
-public/
-├── documents/       # Public documents such as CV
-└── images/          # Brand, profile, and technology assets
-
-src/
-├── components/
-│   ├── layout/      # Site-wide layout components
-│   ├── sections/    # Main portfolio sections
-│   └── ui/          # Reusable interface components
-├── composables/     # Reusable Vue logic
-├── data/            # Portfolio content and configuration
-├── styles/          # Global design system and styles
-├── App.vue          # Application root
-└── main.js          # Application entry point
+├── api/             # Serverless API endpoints
+├── public/          # Static assets and resume
+├── src/
+│   ├── components/  # Layout, sections, and UI components
+│   ├── composables/ # Reusable Vue logic
+│   ├── data/        # Portfolio data
+│   └── styles/      # Global styles
+├── index.html
+├── package.json
+└── vite.config.js
 ```
+For the complete structure and directory responsibilities, see ARCHITECTURE.md.
 
-## Pages/Content
+## Getting Started
+#### Prerequisites
+Make sure you have Node.js and npm installed.
+
+#### Installation
+Clone the repository and install the project dependencies:
 ```
-├── Hero
-├── Projects
-├── Tools & Technologies
-├── About
-├── Resume
-└── Contact
-```
-
-### Hero
-
-A personal introduction that communicates my professional focus and provides quick access to my work and resume.
-
-### Projects
-
-The Projects section currently contains **placeholder project entries** that establish the intended structure and presentation for future work.
-
-These placeholders are not presented as completed or existing projects. They provide the visual and structural foundation for adding real projects as they become available.
-
-### Tools & Technologies
-
-The Tools section represents technologies, software, platforms, and development tools that I am genuinely familiar with and have experience using.
-
-These include technologies across areas such as:
-
-- Web development
-- Programming
-- Data analytics
-- Data visualization
-- Databases
-- Development tools
-- Design and prototyping
-- API development and testing
-- Productivity and collaboration
-
-The technologies presented in this section describe my broader technical experience and are not necessarily technologies used to build this portfolio itself.
-
-### About
-
-Provides additional professional and personal context, helping prospective employers understand my background, interests, and approach to technology.
-
-### Resume
-
-The portfolio provides prospective employers with the option to **view or download my resume** directly from the website.
-
-The current resume is available at:
-
-```text
-public/documents/CV.pdf
+git clone <repository-url>
+cd fritzc-vue-portfolio
+npm install
 ```
 
-### Contact
+#### Environment Variables
+Create a .env file in the project root:
+```
+VITE_TURNSTILE_SITE_KEY=your_turnstile_site_key
+```
 
-The portfolio includes a functional contact form that allows visitors and prospective employers to send inquiries directly through the website.
+The Turnstile site key is a public client-side key.
 
-Form submissions are handled through Web3Forms, while Notyf provides visual feedback for successful and unsuccessful submissions.
+The corresponding secret key is not exposed in the frontend application and is configured for server-side verification.
 
-The form currently supports:
+#### Development
+Start the Vite development server:
+```
+npm run dev
+```
 
-- Full name
-- Email address
-- Inquiry type dropdown
-- Message
+#### Production Build
+Create a production build:
+```
+npm run build
+```
 
-The form does not require a custom application backend. This keeps the current portfolio lightweight while providing a practical way for visitors to make contact.
+#### Preview
+Preview the production build locally:
+```
+npm run preview
+```
+
+## Deployment
+The portfolio is deployed through Vercel.
+
+Vercel provides both the hosting environment for the Vue application and the serverless API used by the contact form.
+
+Production environment variables are configured through the Vercel project settings.
+
+## Future Improvements
+The project is intended to evolve as my portfolio grows.
+
+Potential improvements include:
+- Replacing project placeholders with completed projects
+- Adding detailed project case studies
+- Expanding contact functionality
+- Introducing a database-backed contact system
+- Adding analytics
+- Further improving accessibility and performance
+- Adding automated testing
+
+## License
+This is a personal portfolio project.
+
+The source code and original assets are not intended for redistribution as a commercial template.
+
+
 

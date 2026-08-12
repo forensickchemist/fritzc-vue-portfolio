@@ -7,6 +7,7 @@ import {
 } from 'vue';
 
 import { socialLinks } from '../../data/portfolio';
+
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
 
@@ -28,20 +29,23 @@ const turnstileContainer = ref(null);
 
 let turnstileScript = null;
 
-// ------------------------------------------------------------
-// Load Turnstile script
-// ------------------------------------------------------------
+// ============================================================
+// LOAD TURNSTILE
+// ============================================================
 
 const loadTurnstileScript = () => {
   return new Promise((resolve, reject) => {
+    // Turnstile already loaded
     if (window.turnstile) {
       resolve();
       return;
     }
 
-    const existingScript = document.querySelector(
-      'script[src*="challenges.cloudflare.com/turnstile"]'
-    );
+    // Script is already being loaded
+    const existingScript =
+      document.querySelector(
+        'script[src*="challenges.cloudflare.com/turnstile"]'
+      );
 
     if (existingScript) {
       existingScript.addEventListener(
@@ -59,6 +63,7 @@ const loadTurnstileScript = () => {
       return;
     }
 
+    // Create Turnstile script
     turnstileScript =
       document.createElement('script');
 
@@ -71,16 +76,19 @@ const loadTurnstileScript = () => {
     turnstileScript.onload = resolve;
     turnstileScript.onerror = reject;
 
-    document.head.appendChild(turnstileScript);
+    document.head.appendChild(
+      turnstileScript
+    );
   });
 };
 
-// ------------------------------------------------------------
-// Render Turnstile explicitly
-// ------------------------------------------------------------
+// ============================================================
+// RENDER TURNSTILE
+// ============================================================
 
 const renderTurnstile = async () => {
   await loadTurnstileScript();
+
   await nextTick();
 
   if (
@@ -96,10 +104,12 @@ const renderTurnstile = async () => {
       turnstileContainer.value,
       {
         sitekey: TURNSTILE_SITE_KEY,
+
         action: 'contact',
 
         callback: (token) => {
-          turnstileToken.value = token;
+          turnstileToken.value =
+            token;
         },
 
         'expired-callback': () => {
@@ -121,9 +131,9 @@ const renderTurnstile = async () => {
     );
 };
 
-// ------------------------------------------------------------
-// Reset the specific Turnstile widget
-// ------------------------------------------------------------
+// ============================================================
+// RESET TURNSTILE
+// ============================================================
 
 const resetTurnstile = () => {
   turnstileToken.value = '';
@@ -138,15 +148,16 @@ const resetTurnstile = () => {
   }
 };
 
-// ------------------------------------------------------------
-// Submit contact form
-// ------------------------------------------------------------
+// ============================================================
+// SUBMIT FORM
+// ============================================================
 
 const submitForm = async () => {
   if (isLoading.value) {
     return;
   }
 
+  // Make sure Turnstile has been completed
   if (!turnstileToken.value) {
     notyf.error(
       'Please complete the captcha verification.'
@@ -164,14 +175,23 @@ const submitForm = async () => {
         method: 'POST',
 
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':
+            'application/json',
         },
 
         body: JSON.stringify({
-          fullName: fullName.value.trim(),
-          email: email.value.trim(),
-          inquiryType: inquiryType.value,
-          message: message.value.trim(),
+          fullName:
+            fullName.value.trim(),
+
+          email:
+            email.value.trim(),
+
+          inquiryType:
+            inquiryType.value,
+
+          message:
+            message.value.trim(),
+
           turnstileToken:
             turnstileToken.value,
         }),
@@ -181,7 +201,8 @@ const submitForm = async () => {
     let result = null;
 
     try {
-      result = await response.json();
+      result =
+        await response.json();
     } catch {
       result = null;
     }
@@ -193,8 +214,11 @@ const submitForm = async () => {
       );
     }
 
-    notyf.success('Message Sent!');
+    notyf.success(
+      'Message Sent!'
+    );
 
+    // Clear form
     fullName.value = '';
     email.value = '';
     inquiryType.value = '';
@@ -211,31 +235,38 @@ const submitForm = async () => {
         'Failed to send message.'
     );
   } finally {
-    // Turnstile tokens are single-use.
-    // Reset the widget after every attempt so
-    // the next attempt receives a fresh token.
+    /*
+     * Turnstile tokens are single-use.
+     * Always reset the widget after submission.
+     */
     resetTurnstile();
 
     isLoading.value = false;
   }
 };
 
-// ------------------------------------------------------------
-// Lifecycle
-// ------------------------------------------------------------
+// ============================================================
+// MOUNT
+// ============================================================
 
 onMounted(() => {
-  renderTurnstile().catch((error) => {
-    console.error(
-      'Failed to initialize Turnstile:',
-      error
-    );
+  renderTurnstile().catch(
+    (error) => {
+      console.error(
+        'Failed to initialize Turnstile:',
+        error
+      );
 
-    notyf.error(
-      'Captcha could not be loaded. Please refresh the page and try again.'
-    );
-  });
+      notyf.error(
+        'Captcha could not be loaded. Please refresh the page and try again.'
+      );
+    }
+  );
 });
+
+// ============================================================
+// UNMOUNT
+// ============================================================
 
 onBeforeUnmount(() => {
   if (
@@ -249,6 +280,12 @@ onBeforeUnmount(() => {
 
   turnstileWidgetId.value = null;
   turnstileToken.value = '';
+
+  /*
+   * Don't remove the global Turnstile script here.
+   *
+   * Other components/pages may still use it.
+   */
 });
 </script>
 
@@ -258,6 +295,11 @@ onBeforeUnmount(() => {
     class="section contact-section"
   >
     <div class="container">
+
+      <!-- ==================================================
+           HEADER
+           ================================================== -->
+
       <header class="contact-header">
         <h2>
           LET'S
@@ -276,7 +318,16 @@ onBeforeUnmount(() => {
         </p>
       </header>
 
+      <!-- ==================================================
+           CONTACT GRID
+           ================================================== -->
+
       <div class="contact-grid">
+
+        <!-- ==================================================
+             MAP
+             ================================================== -->
+
         <div class="map-card">
           <iframe
             src="https://maps.google.com/maps?q=Quezon%20City&t=&z=13&ie=UTF8&iwloc=&output=embed"
@@ -287,15 +338,26 @@ onBeforeUnmount(() => {
           ></iframe>
         </div>
 
+        <!-- ==================================================
+             FORM
+             ================================================== -->
+
         <div class="form-card">
           <form
             class="contact-form"
             @submit.prevent="submitForm"
           >
-            <h3>Send a Message</h3>
+
+            <h3>
+              Send a Message
+            </h3>
+
+            <!-- Full Name -->
 
             <div class="field">
-              <label for="full-name">
+              <label
+                for="full-name"
+              >
                 Full Name
               </label>
 
@@ -310,8 +372,12 @@ onBeforeUnmount(() => {
               />
             </div>
 
+            <!-- Email -->
+
             <div class="field">
-              <label for="email">
+              <label
+                for="email"
+              >
                 Email Address
               </label>
 
@@ -326,8 +392,12 @@ onBeforeUnmount(() => {
               />
             </div>
 
+            <!-- Inquiry Type -->
+
             <div class="field">
-              <label for="inquiry-type">
+              <label
+                for="inquiry-type"
+              >
                 Inquiry Type
               </label>
 
@@ -344,30 +414,44 @@ onBeforeUnmount(() => {
                   Select an option
                 </option>
 
-                <option value="Web Development">
+                <option
+                  value="Web Development"
+                >
                   Web Development
                 </option>
 
-                <option value="Data Analytics">
+                <option
+                  value="Data Analytics"
+                >
                   Data Analytics
                 </option>
 
-                <option value="UI/UX Design">
+                <option
+                  value="UI/UX Design"
+                >
                   UI/UX Design
                 </option>
 
-                <option value="Collaboration">
+                <option
+                  value="Collaboration"
+                >
                   Collaboration
                 </option>
 
-                <option value="Other">
+                <option
+                  value="Other"
+                >
                   Other
                 </option>
               </select>
             </div>
 
+            <!-- Message -->
+
             <div class="field">
-              <label for="message">
+              <label
+                for="message"
+              >
                 Message
               </label>
 
@@ -381,13 +465,20 @@ onBeforeUnmount(() => {
               ></textarea>
             </div>
 
-            <!-- Cloudflare Turnstile -->
-            <div class="turnstile-wrapper">
+            <!-- ==================================================
+                 CLOUDFLARE TURNSTILE
+                 ================================================== -->
+
+            <div
+              class="turnstile-wrapper"
+            >
               <div
                 ref="turnstileContainer"
                 class="cf-turnstile"
               ></div>
             </div>
+
+            <!-- Submit -->
 
             <button
               type="submit"
@@ -400,12 +491,20 @@ onBeforeUnmount(() => {
                   : 'Send Message'
               }}
             </button>
+
           </form>
         </div>
       </div>
 
+      <!-- ==================================================
+           SOCIAL LINKS
+           ================================================== -->
+
       <div class="social-row">
-        <h3>Connect With Me</h3>
+
+        <h3>
+          Connect With Me
+        </h3>
 
         <div class="social-container">
           <a
@@ -424,7 +523,9 @@ onBeforeUnmount(() => {
             />
           </a>
         </div>
+
       </div>
+
     </div>
   </section>
 </template>
@@ -466,10 +567,8 @@ onBeforeUnmount(() => {
 
 .contact-grid {
   display: grid;
-  grid-template-columns: repeat(
-    2,
-    minmax(0, 1fr)
-  );
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
@@ -575,7 +674,7 @@ onBeforeUnmount(() => {
 }
 
 /* ============================================================
-   FORM FOCUS STATES
+   FORM FOCUS
    ============================================================ */
 
 .field input:focus,
@@ -637,7 +736,7 @@ onBeforeUnmount(() => {
 }
 
 /* ============================================================
-   SOCIAL SECTION
+   SOCIAL
    ============================================================ */
 
 .social-row {
@@ -676,7 +775,8 @@ onBeforeUnmount(() => {
   width: 50px;
   height: 50px;
   object-fit: contain;
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.3s ease;
 }
 
 .social-icon-img:hover {

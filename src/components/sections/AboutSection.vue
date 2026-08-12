@@ -26,7 +26,7 @@
             </a>
 
             <a
-              href="/documents/Fritz-C-Resume.pdf"
+              href="/documents/CV.pdf"
               download
               class="resume-button resume-button-secondary"
             >

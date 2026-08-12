@@ -85,7 +85,7 @@ export default async function handler(req, res) {
   // ------------------------------------------------------------
   // Cloudflare Siteverify
   // ------------------------------------------------------------
-
+/*
   let verification;
 
   try {
@@ -148,6 +148,48 @@ export default async function handler(req, res) {
         'Captcha verification failed. Please try again.',
     });
   }
+ */
+
+  let verification;
+
+try {
+  const response = await fetch(SITEVERIFY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      secret,
+      response: turnstileToken,
+      ...(remoteIp
+        ? { remoteip: remoteIp }
+        : {}),
+    }),
+  });
+
+  const responseText = await response.text();
+
+  console.log('Turnstile Siteverify status:', response.status);
+  console.log('Turnstile Siteverify response:', responseText);
+
+  if (!response.ok) {
+    throw new Error(
+      `Siteverify returned HTTP ${response.status}: ${responseText}`
+    );
+  }
+
+  verification = JSON.parse(responseText);
+} catch (error) {
+  console.error(
+    'Turnstile Siteverify request failed:',
+    error
+  );
+
+  return res.status(502).json({
+    message:
+      'Captcha verification could not be completed. Please try again.',
+  });
+}
 
   // ------------------------------------------------------------
   // Turnstile is valid.
